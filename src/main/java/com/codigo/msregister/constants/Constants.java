@@ -9,6 +9,10 @@ public class Constants {
     public static final String MESS_SUCCESS="Ejecución correcta";
     public static final String MESS_ERROR="Error en la Ejecución";
 
+    public static final String MESS_ERROR_DATA_NOT_VALID="Error: Durante las validaciones de los Datos";
+    public static final String MESS_NON_DATA="No existe Datos para ID";
+    public static final String MESS_ZERO_ROWS="No existe Registros en BD";
+    public static final String MESS_ERROR_NOT_UPDATE ="Error: No se ejecuto la actualización, Empresa no Existe";
     //data
     public static final Integer LENGTH_RUC=11;
     public static final Integer LENGTH_DNI=8;

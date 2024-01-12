@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class EnterprisesServiceImpl implements EnterprisesService {
@@ -32,26 +33,47 @@ public class EnterprisesServiceImpl implements EnterprisesService {
         if(validate){
             EnterprisesEntity enterprises = getEntity(requestEnterprises);
             enterprisesRepository.save(enterprises);
-            List<EnterprisesEntity> generic = new ArrayList<>();
-            generic.add(enterprises);
-            return new ResponseBase(Constants.CODE_SUCCESS,Constants.MESS_SUCCESS,generic);
+            return new ResponseBase(Constants.CODE_SUCCESS,Constants.MESS_SUCCESS, Optional.of(enterprises));
+        }else{
+            return new ResponseBase(Constants.CODE_ERROR,Constants.MESS_ERROR_DATA_NOT_VALID,null);
         }
-        return new ResponseBase(Constants.CODE_ERROR,Constants.MESS_ERROR,null);
     }
 
     @Override
     public ResponseBase findOneEnterprise(Integer id) {
-        return null;
+        Optional enterprises = enterprisesRepository.findById(id);
+        if(enterprises.isPresent()){
+            return new ResponseBase(Constants.CODE_SUCCESS,Constants.MESS_SUCCESS,enterprises);
+        }
+        return new ResponseBase(Constants.CODE_SUCCESS,Constants.MESS_NON_DATA,Optional.empty());
     }
 
     @Override
     public ResponseBase findAllEnterprises() {
-        return null;
+        Optional allEnterprises = Optional.of(enterprisesRepository.findAll());
+        if(allEnterprises.isPresent()){
+            return new ResponseBase(Constants.CODE_SUCCESS,Constants.MESS_SUCCESS,allEnterprises);
+        }
+        return new ResponseBase(Constants.CODE_SUCCESS,Constants.MESS_ZERO_ROWS,Optional.empty());
     }
 
     @Override
     public ResponseBase updateEnterprise(Integer id, RequestEnterprises requestEnterprises) {
-        return null;
+        boolean existEnterprise = enterprisesRepository.existsById(id);
+        if(existEnterprise){
+            Optional<EnterprisesEntity> enterprises = enterprisesRepository.findById(id);
+            boolean validationEntity = enterprisesValidations.validateInput(requestEnterprises);
+            if(validationEntity){
+                EnterprisesEntity enterprisesUpdate = getEntityUpdate(requestEnterprises,enterprises.get());
+                enterprisesRepository.save(enterprisesUpdate);
+                return new ResponseBase(Constants.CODE_SUCCESS,Constants.MESS_SUCCESS,Optional.of(enterprisesUpdate));
+            }else {
+                return new ResponseBase(Constants.CODE_ERROR,Constants.MESS_ERROR_DATA_NOT_VALID,Optional.empty());
+            }
+        }else {
+            return new ResponseBase(Constants.CODE_ERROR,Constants.MESS_ERROR_NOT_UPDATE,Optional.empty());
+        }
+
     }
 
     private EnterprisesEntity getEntity(RequestEnterprises requestEnterprises){
@@ -61,20 +83,41 @@ public class EnterprisesServiceImpl implements EnterprisesService {
         entity.setTradeName(enterprisesValidations.isNullOrEmpty(requestEnterprises.getTradeName()) ? requestEnterprises.getBusinessName() : requestEnterprises.getTradeName());
         entity.setStatus(Constants.STATUS_ACTIVE);
         //Añadiendo FK
-        EnterprisesTypeEntity enterprisesTypeEntity = new EnterprisesTypeEntity();
-        enterprisesTypeEntity.setIdEnterprisesType(requestEnterprises.getEnterprisesTypeEntity());
-        entity.setEnterprisesTypeEntity(enterprisesTypeEntity);
-
-        DocumentsTypeEntity documentsTypeEntity = new DocumentsTypeEntity();
-        documentsTypeEntity.setIdDocumentsType(requestEnterprises.getDocumentsTypeEntity());
-        entity.setDocumentsTypeEntity(documentsTypeEntity);
-
+        entity.setEnterprisesTypeEntity(getEnterprisesType(requestEnterprises));
+        entity.setDocumentsTypeEntity(getDocumentsType(requestEnterprises));
         //Auditoria
-        long currentTime = System.currentTimeMillis();
-        Timestamp timestamp = new Timestamp(currentTime);
         entity.setUserCreate(Constants.AUDIT_ADMIN);
-        entity.setDateCreate(timestamp);
+        entity.setDateCreate(getTimestamp());
 
         return entity;
     }
+    private EnterprisesEntity getEntityUpdate(RequestEnterprises requestEnterprises, EnterprisesEntity enterprisesEntity){
+        enterprisesEntity.setNumDocument(requestEnterprises.getNumDocument());
+        enterprisesEntity.setBusinessName(requestEnterprises.getBusinessName());
+        enterprisesEntity.setTradeName(enterprisesValidations.isNullOrEmpty(requestEnterprises.getTradeName()) ? requestEnterprises.getBusinessName() : requestEnterprises.getTradeName());
+        enterprisesEntity.setEnterprisesTypeEntity(getEnterprisesType(requestEnterprises));
+        enterprisesEntity.setDocumentsTypeEntity(getDocumentsType(requestEnterprises));
+        enterprisesEntity.setUserModif(Constants.AUDIT_ADMIN);
+        enterprisesEntity.setDateModif(getTimestamp());
+        return enterprisesEntity;
+    }
+
+    private EnterprisesTypeEntity getEnterprisesType(RequestEnterprises requestEnterprises){
+        EnterprisesTypeEntity typeEntity = new EnterprisesTypeEntity();
+        typeEntity.setIdEnterprisesType(requestEnterprises.getEnterprisesTypeEntity());
+        return typeEntity;
+    }
+
+    private DocumentsTypeEntity getDocumentsType(RequestEnterprises requestEnterprises){
+        DocumentsTypeEntity typeEntity = new DocumentsTypeEntity();
+        typeEntity.setIdDocumentsType(requestEnterprises.getDocumentsTypeEntity());
+        return  typeEntity;
+    }
+
+    private Timestamp getTimestamp(){
+        long currentTime = System.currentTimeMillis();
+        Timestamp timestamp = new Timestamp(currentTime);
+        return timestamp;
+    }
+
 }
