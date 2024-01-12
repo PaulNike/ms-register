@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-
+@NamedQuery(name = "DocumentsTypeEntity.findByCodType", query = "select a from DocumentsTypeEntity a where a.codType=:codType")
 @Entity
 @Getter
 @Setter
