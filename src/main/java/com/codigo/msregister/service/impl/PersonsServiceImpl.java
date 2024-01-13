@@ -3,6 +3,7 @@ package com.codigo.msregister.service.impl;
 import com.codigo.msregister.aggregates.request.RequestPersons;
 import com.codigo.msregister.aggregates.response.ResponseBase;
 import com.codigo.msregister.aggregates.response.ResponseReniec;
+import com.codigo.msregister.config.RedisService;
 import com.codigo.msregister.constants.Constants;
 import com.codigo.msregister.entity.DocumentsTypeEntity;
 import com.codigo.msregister.entity.EnterprisesEntity;
@@ -11,8 +12,8 @@ import com.codigo.msregister.feignClient.ReniecClient;
 import com.codigo.msregister.repository.PersonsRepository;
 import com.codigo.msregister.service.PersonsService;
 import com.codigo.msregister.util.PersonsValidations;
+import com.codigo.msregister.util.Util;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
@@ -24,16 +25,25 @@ public class PersonsServiceImpl implements PersonsService {
     private final ReniecClient reniecClient;
     private final PersonsValidations personsValidations;
     private final PersonsRepository personsRepository;
+    private final RedisService redisService;
+    private final Util util;
 
 
-    public PersonsServiceImpl(ReniecClient reniecClient, PersonsValidations personsValidations, PersonsRepository personsRepository) {
+
+    public PersonsServiceImpl(ReniecClient reniecClient, PersonsValidations personsValidations, PersonsRepository personsRepository, RedisService redisService, Util util) {
         this.reniecClient = reniecClient;
         this.personsValidations = personsValidations;
         this.personsRepository = personsRepository;
+        this.redisService = redisService;
+        this.util = util;
     }
 
     @Value("${token.api.reniec}")
     private String tokenReniec;
+
+    @Value("${time.expiration.reniec.info}")
+    private String timeExpirationReniecInfo;
+
     @Override
     public ResponseBase getInfoReniec(String numero) {
         ResponseReniec reniec = getExecutionReniec(numero);
@@ -133,11 +143,19 @@ public class PersonsServiceImpl implements PersonsService {
         return personsEntity;
     }
 
-    @Cacheable(value = "REGISTER")
+
     public ResponseReniec getExecutionReniec(String numero){
-        String authorization = "Bearer "+tokenReniec;
-        ResponseReniec reniec = reniecClient.getInfoReniec(numero,authorization);
-        return  reniec;
+        String redisCache = redisService.getValueByKey(Constants.REDIS_KEY_INFO_RENIEC+numero);
+        if(redisCache!= null){
+            ResponseReniec reniec = util.convertFromJson(redisCache,ResponseReniec.class);
+            return reniec;
+        }else{
+            String authorization = "Bearer "+tokenReniec;
+            ResponseReniec reniec = reniecClient.getInfoReniec(numero,authorization);
+            String redisData = util.convertToJson(reniec);
+            redisService.saveKeyValue(Constants.REDIS_KEY_INFO_RENIEC+numero,redisData,Integer.valueOf(timeExpirationReniecInfo));
+            return  reniec;
+        }
     }
     private DocumentsTypeEntity getDocumentsType(RequestPersons requestPersons){
         DocumentsTypeEntity typeEntity = new DocumentsTypeEntity();

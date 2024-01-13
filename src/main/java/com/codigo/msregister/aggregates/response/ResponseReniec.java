@@ -1,11 +1,15 @@
 package com.codigo.msregister.aggregates.response;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.io.Serializable;
 
 @Getter
 @Setter
-public class ResponseReniec {
+@NoArgsConstructor
+public class ResponseReniec implements Serializable {
     private String nombres;
     private String apellidoPaterno;
     private String apellidoMaterno;

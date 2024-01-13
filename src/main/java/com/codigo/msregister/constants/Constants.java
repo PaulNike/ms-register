@@ -27,5 +27,7 @@ public class Constants {
     //AUDIT
     public static final String AUDIT_ADMIN="PRODRIGUEZ";
 
+    //REDISKEY
+    public static final String REDIS_KEY_INFO_RENIEC="MS:REGISTER:INFORENIEC:";
 
 }
