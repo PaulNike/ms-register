@@ -12,9 +12,11 @@ import com.codigo.msregister.repository.PersonsRepository;
 import com.codigo.msregister.service.PersonsService;
 import com.codigo.msregister.util.PersonsValidations;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -61,22 +63,44 @@ public class PersonsServiceImpl implements PersonsService {
 
     @Override
     public ResponseBase findOne(int id) {
-        return null;
+        Optional<PersonsEntity> optional = personsRepository.findById(id);
+        if(optional.isPresent()){
+            return new ResponseBase(Constants.CODE_SUCCESS,Constants.MESS_SUCCESS,optional);
+        }else {
+            return new ResponseBase(Constants.CODE_ERROR,Constants.MESS_ZERO_ROWS,Optional.empty());
+        }
     }
 
     @Override
     public ResponseBase findAll() {
-        return null;
+        List<PersonsEntity> entityList = personsRepository.findAll();
+        if(entityList.size() >= 1){
+            return new ResponseBase(Constants.CODE_SUCCESS,Constants.MESS_SUCCESS,Optional.of(entityList));
+        }else{
+            return new ResponseBase(Constants.CODE_ERROR,Constants.MESS_ZERO_ROWS,Optional.empty());
+        }
     }
 
     @Override
     public ResponseBase updatePersons(int id, RequestPersons requestPersons) {
-        return null;
+        boolean existsPerson = personsRepository.existsById(id);
+        if(existsPerson){
+            Optional<PersonsEntity> personsEntity = personsRepository.findById(id);
+            boolean validatInput = personsValidations.validateInput(requestPersons);
+            if(validatInput){
+                PersonsEntity personsUpdate = getPerson(requestPersons,personsEntity.get(),true);
+                personsRepository.save(personsUpdate);
+                return new ResponseBase(Constants.CODE_SUCCESS,Constants.MESS_SUCCESS,Optional.of(personsUpdate));
+            }else{
+                return new ResponseBase(Constants.CODE_ERROR,Constants.MESS_ERROR_DATA_NOT_VALID,Optional.empty());
+            }
+        }else{
+            return new ResponseBase(Constants.CODE_ERROR,Constants.MESS_ERROR_NOT_UPDATE_PERSON,Optional.empty());
+        }
     }
 
     private PersonsEntity getPersonsEntity(RequestPersons requestPersons){
         PersonsEntity personsEntity = new PersonsEntity();
-        personsEntity.setNumDocument(requestPersons.getNumDocument());
         //Ejecutando Reniec
         ResponseReniec reniec = getExecutionReniec(requestPersons.getNumDocument());
         if(reniec != null){
@@ -85,17 +109,32 @@ public class PersonsServiceImpl implements PersonsService {
         }else{
             return null;
         }
+        return  getPerson(requestPersons,personsEntity,false);
+    }
+    /*private PersonsEntity getPersonsEntityUpdate(RequestPersons requestPersons, PersonsEntity personsEntity){
+        return  getPerson(requestPersons,personsEntity,true);
+    }*/
+
+    private PersonsEntity getPerson(RequestPersons requestPersons, PersonsEntity personsEntity, boolean isUpdate){
+        personsEntity.setNumDocument(requestPersons.getNumDocument());
         personsEntity.setEmail(requestPersons.getEmail());
         personsEntity.setTelephone(requestPersons.getTelephone());
         personsEntity.setStatus(Constants.STATUS_ACTIVE);
         personsEntity.setDocumentsTypeEntity(getDocumentsType(requestPersons));
         personsEntity.setEnterprisesEntity(getEnterprisesEntity(requestPersons));
-        personsEntity.setUserCreate(Constants.AUDIT_ADMIN);
-        personsEntity.setDateCreate(getTimestamp());
-        return  personsEntity;
+        if(isUpdate){
+            personsEntity.setUserModif(Constants.AUDIT_ADMIN);
+            personsEntity.setDateModif(getTimestamp());
+        }else {
+            personsEntity.setUserCreate(Constants.AUDIT_ADMIN);
+            personsEntity.setDateCreate(getTimestamp());
+        }
+
+        return personsEntity;
     }
 
-    private ResponseReniec getExecutionReniec(String numero){
+    @Cacheable(value = "REGISTER")
+    public ResponseReniec getExecutionReniec(String numero){
         String authorization = "Bearer "+tokenReniec;
         ResponseReniec reniec = reniecClient.getInfoReniec(numero,authorization);
         return  reniec;

@@ -5,7 +5,6 @@ import com.codigo.msregister.aggregates.response.ResponseBase;
 
 public interface PersonsService {
     ResponseBase getInfoReniec(String numero);
-
     ResponseBase createPersons(RequestPersons requestPersons);
     ResponseBase findOne(int id);
     ResponseBase findAll();

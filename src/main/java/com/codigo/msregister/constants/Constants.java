@@ -13,6 +13,8 @@ public class Constants {
     public static final String MESS_NON_DATA="No existe Datos para ID";
     public static final String MESS_ZERO_ROWS="No existe Registros en BD";
     public static final String MESS_ERROR_NOT_UPDATE ="Error: No se ejecuto la actualización, Empresa no Existe";
+
+    public static final String MESS_ERROR_NOT_UPDATE_PERSON ="Error: No se ejecuto la actualización, Persona no Existe";
     public static final String MESS_NON_DATA_RENIEC="No existe Registros en el API de RENIEC";
     //data
     public static final Integer LENGTH_RUC=11;

@@ -26,4 +26,20 @@ public class PersonsController {
         ResponseBase responseBase = personsService.createPersons(requestPersons);
         return responseBase;
     }
+
+    @GetMapping("dat/{id}")
+    public ResponseBase findOnePerson(@PathVariable int id){
+        ResponseBase responseBase = personsService.findOne(id);
+        return  responseBase;
+    }
+    @GetMapping
+    public ResponseBase findAll(){
+        ResponseBase responseBase = personsService.findAll();
+        return  responseBase;
+    }
+
+    @PutMapping("{id}")
+    public ResponseBase updatePerson(@PathVariable int id, @RequestBody RequestPersons requestPersons){
+        return  personsService.updatePersons(id,requestPersons);
+    }
 }
